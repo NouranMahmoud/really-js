@@ -20,25 +20,27 @@ describe 'webSocket', ->
     it 'should throw error if initialized without passing domain and access token', ->
       expect ->
         connection = new WebSocketTransport()
-      .toThrow new ReallyErorr 'can\'t initialize connection without passing domain and access token'
+      .toThrow new ReallyErorr 'Can\'t initialize connection without passing domain and access token'
 
     it 'should throw error if initialized without passing access token', ->
       expect ->
         connection = new WebSocketTransport('wss://a6bcc.api.really.io', undefined)
-      .toThrow new ReallyErorr 'can\'t initialize connection without passing access token'
+      .toThrow new ReallyErorr 'Can\'t initialize connection without passing domain and access token'
 
     it 'should throw error if initialized without passing domain', ->
       expect ->
         connection = new WebSocketTransport(undefined, 'ibj88w5aye')
-      .toThrow new ReallyErorr 'can\'t initialize connection without passing domain'
+      .toThrow new ReallyErorr 'Can\'t initialize connection without passing domain and access token'
 
     it 'should generate url with type of string', ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
-      expect(connection.url).toBeString()
+      expect ->
+        connection = new WebSocketTransport(1234, 1234)
+      .toThrow new ReallyErorr 'Can\'t initialize connection, URL should be string'
 
     it 'should accept access token with type of string', ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
-      expect(connection.accessToken).toBeString()
+      expect ->
+        connection = new WebSocketTransport('wss://a6bcc.api.really.io', 1234)
+      .toThrow new ReallyErorr 'Can\'t initialize connection, access token should be string'
 
     it 'should URLS be different if the user make a new connection with new access token', ->
       connection_one = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
