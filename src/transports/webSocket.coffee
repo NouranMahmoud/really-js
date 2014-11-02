@@ -8,7 +8,7 @@ class WebSocketTransport extends Transport
     throw new ReallyError 'can\'t initialize connection without passing URL' unless doamin
     transportProtocol = if secure then 'wss' else 'ws'
     @url = "#{transportProtocol}://#{doamin}/v#{protocol.clientVersion}/websocket"
-  
+
   connect: (authenticationToken) ->
     console.log @url
     @socket = new WebSocket @url
