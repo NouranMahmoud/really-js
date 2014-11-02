@@ -1,25 +1,20 @@
-WebSocketTransport = require '../src/transports/webSocket.coffee'
-ReallyErorr = require '../src/really-error.coffee'
-CONFIG = require './support/server/config.coffee'
-protocol = require '../src/protocol.coffee'
+# 
+# Module dependencies.
+# 
+
+CONFIG              = require './support/server/config.coffee'
+protocol            = require '../src/protocol.coffee'
+ReallyErorr         = require '../src/really-error.coffee'
+WebSocketTransport  = require '../src/transports/webSocket.coffee'
+customMatchers      = require './custom-matchers.coffee'
 
 describe 'webSocket', ->
   beforeEach ->
-    customMatchers =
-      toBeString: ->
-        compare: (actual) ->
-          result = pass: typeof actual is "string"
-          console.log result+"-------------"
-          if result.pass
-            result.message = actual + " is string type "
-          else
-            result.message = actual + " is not string type "
-          result
     jasmine.addMatchers(customMatchers)
 
   describe 'initialization', ->
     it 'should be initialized with URL', ->
-      connection = new WebSocketTransport("ibj88w5aye")
+      connection = new WebSocketTransport('ibj88w5aye')
       expect(connection.url).toEqual "wss://a6bcc.api.really.io/v#{protocol.clientVersion}/socket=ibj88w5aye"
 
     it 'should throw error if initialized without passing accessToken', ->
@@ -33,11 +28,10 @@ describe 'webSocket', ->
 
     it 'should accept accessToken with type of string', ->
       connection = new WebSocketTransport("ibj88w5aye")
-      expect(connection.accessToken).toBeString() #Dont forget ()
+      expect(connection.accessToken).toBeString()
 
   describe 'connect', ->
     it "should use initialize @socket only one time (singleton)", ->
-
 
     it "should throw exception when server is blocked/not found", ->
 
