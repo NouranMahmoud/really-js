@@ -35,12 +35,12 @@ describe 'webSocket', ->
     it 'should generate url with type of string', ->
       expect ->
         connection = new WebSocketTransport(1234, 1234)
-      .toThrow new ReallyErorr 'Can\'t initialize connection, URL should be string'
+      .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
     it 'should accept access token with type of string', ->
       expect ->
         connection = new WebSocketTransport('wss://a6bcc.api.really.io', 1234)
-      .toThrow new ReallyErorr 'Can\'t initialize connection, access token should be string'
+      .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
     it 'should URLS be different if the user make a new connection with new access token', ->
       connection_one = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
