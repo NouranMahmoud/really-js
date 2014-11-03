@@ -27,6 +27,9 @@ class WebSocketTransport extends Transport
   # Mixin Emitter
   Emitter(WebSocketTransport.prototype)
   
+  _destroy: () ->
+
+
   _bindWebSocketEvents = ->
     @socket.addEventListener 'open', =>
       console.log 'OPEN'
@@ -49,10 +52,10 @@ class WebSocketTransport extends Transport
   connect: () ->
     # singleton websocket
     try
-      @socket ?= new WebSocket @domain
+      @socket ?= new WebSocket @url
     catch e
       console.error e
-      throw new ReallyError "Can't connect to #{@domain}"
+      throw new ReallyError "Server with URL: #{url} is not found"
 
     
     _bindWebSocketEvents.call(this)
@@ -80,7 +83,7 @@ class WebSocketTransport extends Transport
   send: (message, options) ->
     {type} = message
     {success, error} = options
-    message.tag = @callbacksBuffer.add {type, success, error}
+    message.data.tag = @callbacksBuffer.add {type, success, error}
     @socket.send JSON.stringify message.data
 
   isConnected: () ->
