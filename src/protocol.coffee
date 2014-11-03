@@ -2,6 +2,8 @@
  * Protocol 
  * This module is responsible for generating protocol messages
 ###
+_ = require 'lodash'
+
 VERSION = '0'
 module.exports = 
   
@@ -14,10 +16,13 @@ module.exports =
     'update': 'update'
     'delete': 'delete'
 
-  getInitializationMessage: (authToken) ->
-    'cmd': @commands.init
-    'authToken': authToken
+  getInitializationMessage: () ->
+    'type': 'initialization'
+    'data':
+      'cmd': @commands.init
 
   createMessage: (res) ->
     cmd: @commands.create
     res: res
+
+  isErrorMessage: (message) -> _.has message, 'error'
