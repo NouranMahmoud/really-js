@@ -33,12 +33,14 @@ describe 'webSocket', ->
       .toThrow new ReallyErorr 'Can\'t initialize connection without passing domain and access token'
 
     it 'should generate url with type of string', ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
-      expect(connection.url).toBeString()
+      expect ->
+        connection = new WebSocketTransport(1234, 1234)
+      .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
     it 'should accept access token with type of string', ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
-      expect(connection.accessToken).toBeString()
+      expect ->
+        connection = new WebSocketTransport('wss://a6bcc.api.really.io', 1234)
+      .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
     it 'should URLS be different if the user make a new connection with new access token', ->
       connection_one = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
@@ -81,7 +83,6 @@ describe 'webSocket', ->
         done()
 
     it 'should trigger initialized event with user data, after successful connection', ->
-
 
     it 'should throw exception if wrong format of initialization, after successful connection', ->
 

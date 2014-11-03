@@ -8,7 +8,7 @@ _ = require 'lodash'
 PushHandler = require '../push-handler.coffee'
 
 class WebSocketTransport extends Transport
-  
+
   constructor: (@domain, @accessToken) ->
     unless domain and accessToken
       throw new ReallyError 'Can\'t initialize connection without passing domain and access token' 
@@ -53,7 +53,6 @@ class WebSocketTransport extends Transport
     catch e
       console.error e
       throw new ReallyError "Can't connect to #{@domain}"
-
     
     _bindWebSocketEvents.call(this)
     
@@ -70,7 +69,6 @@ class WebSocketTransport extends Transport
     
     @socket.addEventListener 'open', ->
       _sendFirstMessage()
-
 
   disconnect: () ->
     @socket.close()
