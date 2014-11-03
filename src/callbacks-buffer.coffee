@@ -13,12 +13,14 @@ class CallbacksBuffer
   noop = ->
   
   handle = (message) ->
-    {tag, success, error} = message
+    {tag} = message
     # TODO: add the ability to pass context to success and error callbacks
     if protocol.isErrorMessage message
-      setTimeout @_callbacks[tag]['error'], 0
+      @_callbacks[tag]['error']
     else
-      etTimeout @_callbacks[tag]['success'], 0
+      @_callbacks[tag]['success']
+
+    delete @_callbacks[tag]
 
 
   add: (args) ->
@@ -26,10 +28,11 @@ class CallbacksBuffer
     type ?= 'default'
     success ?= noop
     error ?= noop
-    
-    tag = newTag()
+    tag = newTag.call(this)
     
     @_callbacks[tag] = {type, success, error}
+
+    return tag
 
   newTag = -> @tag += 1
 

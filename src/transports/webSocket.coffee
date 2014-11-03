@@ -1,15 +1,13 @@
+_ = require 'lodash'
 Transport = require '../transport.coffee'
 ReallyError = require '../really-error.coffee'
 WebSocket = require 'ws'
 protocol = require '../protocol.coffee'
 Emitter = require 'component-emitter'
 CallbacksBuffer = require '../callbacks-buffer.coffee'
-_ = require 'lodash'
 PushHandler = require '../push-handler.coffee'
 
 class WebSocketTransport extends Transport
-  # Mixin Emitter
-  Emitter(WebSocketTransport.prototype)
   
   constructor: (@domain, @accessToken) ->
     unless domain and accessToken
@@ -26,7 +24,12 @@ class WebSocketTransport extends Transport
     @initialized =  false
     @url = "#{domain}/v#{protocol.clientVersion}/socket?access_token=#{accessToken}"
     
+  # Mixin Emitter
+  Emitter(WebSocketTransport.prototype)
   
+  _destroy = () -> @off() # remove all event listeners
+
+
   _bindWebSocketEvents = ->
     @socket.addEventListener 'open', =>
       console.log 'OPEN'
@@ -35,6 +38,10 @@ class WebSocketTransport extends Transport
     @socket.addEventListener 'close', =>
       console.log 'CLOSED'
       @emit 'closed'
+    
+    @socket.addEventListener 'error', =>
+      console.log 'CLOSED'
+      @emit 'error'
     
     @socket.addEventListener 'message', (e) =>
       {data} = e
@@ -47,13 +54,16 @@ class WebSocketTransport extends Transport
       @emit 'message', JSON.parse data
 
   connect: () ->
-    # singleton websocket
-    try
-      @socket ?= new WebSocket @domain
-    catch e
-      console.error e
-      throw new ReallyError "Can't connect to #{@domain}"
-
+    # if there's already an instance of WebSocket use it
+    @socket ?= new WebSocket @url
+    
+    @once 'error', () ->
+      throw new ReallyError "Server with URL: #{url} is not found"
+    
+    @once 'closed', (e) ->
+      # TODO: utilize code and reason returned by backend for better handling
+      console.log e.code
+      console.log e.reason
     
     _bindWebSocketEvents.call(this)
     
@@ -76,12 +86,13 @@ class WebSocketTransport extends Transport
     @socket.close()
     @socket = null
     @initialized = false
+    _destroy.call(this)
 
   send: (message, options) ->
-    @socket.send JSON.stringify message.data
     {type} = message
     {success, error} = options
-    @callbacksBuffer.add {type, success, error}
+    message.data.tag = @callbacksBuffer.add {type, success, error}
+    @socket.send JSON.stringify message.data
 
   isConnected: () ->
     return false if not @socket
