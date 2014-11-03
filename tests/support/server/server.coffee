@@ -1,8 +1,6 @@
 WebSocketServer = require('ws').Server
 CONFIG = require './config'
-console.log CONFIG
-wss = new WebSocketServer 
-  port: CONFIG.WEBSOCKET_SERVER_PORT
+wss = new WebSocketServer port: CONFIG.REALLY_PORT
 
 wss.on 'connection', (ws) ->
   ws.on 'message', (message) ->

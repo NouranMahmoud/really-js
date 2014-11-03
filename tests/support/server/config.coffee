@@ -1,2 +1,3 @@
 module.exports =
-  WEBSOCKET_SERVER_PORT: 1337
+  REALLY_DOMAIN: 'ws://localhost:1337'
+  REALLY_PORT: '1337'
