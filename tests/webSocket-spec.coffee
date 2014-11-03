@@ -7,12 +7,13 @@ protocol            = require '../src/protocol.coffee'
 ReallyErorr         = require '../src/really-error.coffee'
 WebSocketTransport  = require '../src/transports/webSocket.coffee'
 customMatchers      = require './custom-matchers.coffee'
+Emitter = require 'component-emitter'
 
 describe 'webSocket', ->
   beforeEach ->
     jasmine.addMatchers(customMatchers)
 
-  describe 'initialization', ->
+  xdescribe 'initialization', ->
     it 'should be initialized with URL', ->
       connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
       expect(connection.url).toEqual "wss://a6bcc.api.really.io/v#{protocol.clientVersion}/socket?access_token=ibj88w5aye"
@@ -48,6 +49,7 @@ describe 'webSocket', ->
       expect(connection_one.url).not.toEqual connection_two.url
 
   describe 'connect', ->
+
     it 'should use initialize @socket only one time (singleton)', ->
       connection = new WebSocketTransport('wss://a6bcc.api.really.io','ibj88w5aye')
       connection.connect()
@@ -61,30 +63,40 @@ describe 'webSocket', ->
       url = 'ws://a6bcc.api.really.com'
       expect ->
         connection = new WebSocketTransport(url, 'ibj88w5aye')
+        connection.connect()
       .toThrow new ReallyErorr "Server with URL: #{url} is not found"
 
     it 'should send first message', (done) ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
+      connection = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       connection.connect()
-      spyOn(protocol, 'getInitializationMessage');
-      expect(protocol.getInitializationMessage).toHaveBeenCalled();
+      message = protocol.getInitializationMessage()
+      message.data.tag = 1 # Composing an expected value containing tag, where getInitializationMessage doesn't include the tag number .
       connection.on 'message', (msg) ->
-        expect(protocol.getInitializationMessage).toEqual msg
+        expect(message.data).toEqual msg
         done()
 
     it 'should check if state of connection is initialized after successful connection (onopen)', (done) ->
-      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       ws.connect()
-      console.log ws
-      ws.onopen = ->
+      ws.socket.onopen = ->
         ready_state = ws.socket.readyState
-        console.log ready_state
         expect(ready_state).toEqual 1
         done()
 
-    it 'should trigger initialized event with user data, after successful connection', ->
+    it 'should trigger initialized event with user data, after successful connection', (done) ->
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
+      ws.connect()
+      ws.on 'message', (msg) ->
+        expect(ws.initialized).toBeTruthy()
+        done()
 
     it 'should throw exception if wrong format of initialization, after successful connection', ->
+
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake')
+      ws.connect()
+      spyOn(ws.callbacksBuffer._callbacks[1], 'error')
+      ws.on 'message', (msg) ->
+        done()
 
   describe 'send', ->
 
