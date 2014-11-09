@@ -1,3 +1,4 @@
+_ = require 'lodash'
 Transport = require '../transport.coffee'
 ReallyError = require '../really-error.coffee'
 WebSocket = require 'ws'
@@ -77,6 +78,7 @@ class WebSocketTransport extends Transport
     @socket.close()
     @socket = null
     @initialized = false
+    _destroy.call(this)
 
   send: (message, options) ->
     {type} = message

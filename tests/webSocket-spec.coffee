@@ -12,7 +12,6 @@ Emitter             = require 'component-emitter'
 describe 'webSocket', ->
   beforeEach ->
     jasmine.addMatchers(customMatchers)
-    debugger
 
   describe 'initialization', ->
     it 'should be initialized with URL', ->
