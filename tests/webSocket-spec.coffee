@@ -43,10 +43,15 @@ describe 'webSocket', ->
         connection = new WebSocketTransport('wss://a6bcc.api.really.io', 1234)
       .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
+    it 'should URLS be different if the user make a new connection with new access token', ->
+      connection_one = new WebSocketTransport('wss://a6bcc.api.really.io', 'token1')
+      connection_two = new WebSocketTransport('wss://a6bcc.api.really.io', 'token2')
+      expect(connection_one.url).not.toEqual connection_two.url
+
   describe 'connect', ->
 
-    it 'should initialize @socket only one time (singleton)', ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io','ibj88w5aye')
+    it 'should use initialize @socket only one time (singleton)', ->
+      connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'xxwmn93p0h')
       connection.connect()
       socket1 = connection.socket
       expect(socket1).toBeDefined()
@@ -57,12 +62,12 @@ describe 'webSocket', ->
     it 'should throw exception when server is blocked/not found', ->
       url = 'ws://a6bcc.api.really.com'
       expect ->
-        connection = new WebSocketTransport(url, 'ibj88w5aye')
+        connection = new WebSocketTransport(url, 'xxwmn93p0h')
         connection.connect()
       .toThrow new ReallyErorr "Server with URL: #{url} is not found"
 
     it 'should send first message', (done) ->
-      connection = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
+      connection = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'xxwmn93p0h')
       connection.connect()
       message = {cmd: 'init', tag: 1}
       connection.on 'message', (msg) ->
@@ -70,7 +75,7 @@ describe 'webSocket', ->
         done()
 
     it 'should check if state of connection is initialized after successful connection (onopen)', (done) ->
-      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'xxwmn93p0h')
       ws.connect()
       ws.socket.onopen = ->
         ready_state = ws.socket.readyState
@@ -78,7 +83,7 @@ describe 'webSocket', ->
         done()
 
     it 'should trigger initialized event with user data, after successful connection', (done) ->
-      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'xxwmn93p0h')
       ws.connect()
       ws.on 'message', (msg) ->
         expect(ws.initialized).toBeTruthy()
@@ -86,7 +91,7 @@ describe 'webSocket', ->
 
     it 'should throw exception if wrong format of initialization, after successful connection', ->
 
-      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake')
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'xxwmn93p0h')
       ws.connect()
       spyOn(ws.callbacksBuffer._callbacks[1], 'error')
       ws.on 'message', (msg) ->

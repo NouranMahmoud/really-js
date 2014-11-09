@@ -58,8 +58,8 @@ module.exports = function(config) {
     
     "coverageReporter": {
         "reporters": [
-          {"type": "text-summary"},
-          {"type" : "html", "dir" : "coverage/"}
+          {"type": "text-summary"}
+          // {"type" : "html", "dir" : "coverage/"} https://github.com/karma-runner/karma-coverage/issues/22
         ]
       },
 

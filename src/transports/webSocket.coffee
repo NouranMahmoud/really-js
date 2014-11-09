@@ -23,7 +23,7 @@ class WebSocketTransport extends Transport
 
     # connection not initialized yet "we haven't send first message yet"
     @initialized =  false
-    @url = "#{domain}/v#{protocol.clientVersion}/socket?access_token=#{accessToken}"
+    @url = "#{domain}/v#{protocol.clientVersion}/socket"
 
   # Mixin Emitter
   Emitter(WebSocketTransport.prototype)
@@ -33,11 +33,9 @@ class WebSocketTransport extends Transport
 
   _bindWebSocketEvents = ->
     @socket.addEventListener 'open', =>
-      console.log 'OPEN'
       @emit 'opened'
 
     @socket.addEventListener 'close', =>
-      console.log 'CLOSED'
       @emit 'closed'
 
     @socket.addEventListener 'message', (e) =>
