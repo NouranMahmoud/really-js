@@ -83,7 +83,6 @@ describe 'webSocket', ->
 
       ws.on 'message', (msg) ->
         setTimeout x, 50000
-        debugger
         done()
 
     it 'should throw exception, after calling error callback if wrong format of initialization message', ->
