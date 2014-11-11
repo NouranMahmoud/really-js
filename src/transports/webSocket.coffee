@@ -28,7 +28,7 @@ class WebSocketTransport extends Transport
   # Mixin Emitter
   Emitter(WebSocketTransport.prototype)
 
-  _destroy: () ->
+  _destroy =  () ->
 
 
   _bindWebSocketEvents = ->
@@ -48,13 +48,14 @@ class WebSocketTransport extends Transport
 
       @emit 'message', JSON.parse data
 
-  connect: () ->
+  connect: (successCallback, errorCallback) ->
     # singleton websocket
-    try
-      @socket ?= new WebSocket @url
-    catch e
-      console.error e
-      throw new ReallyError "Server with URL: #{url} is not found"
+    @socket ?= new WebSocket @url
+    
+    @socket.addEventListener 'error', () =>
+      @socket.removeEventListener 'error'
+      throw new ReallyError "Server with URL: #{@url} is not found"
+      errorCallback()
 
     _bindWebSocketEvents.call(this)
 
@@ -71,6 +72,7 @@ class WebSocketTransport extends Transport
 
     @socket.addEventListener 'open', ->
       _sendFirstMessage()
+      successCallback()
 
   disconnect: () ->
     @socket.close()

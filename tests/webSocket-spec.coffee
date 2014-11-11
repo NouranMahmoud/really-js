@@ -8,7 +8,7 @@ ReallyErorr         = require '../src/really-error.coffee'
 WebSocketTransport  = require '../src/transports/webSocket.coffee'
 customMatchers      = require './custom-matchers.coffee'
 Emitter             = require 'component-emitter'
-
+ws = {}
 describe 'webSocket', ->
   beforeEach ->
     jasmine.addMatchers(customMatchers)
@@ -16,7 +16,7 @@ describe 'webSocket', ->
   describe 'initialization', ->
     it 'should be initialized with URL', ->
       connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
-      expect(connection.url).toEqual "wss://a6bcc.api.really.io/v#{protocol.clientVersion}/socket?access_token=ibj88w5aye"
+      expect(connection.url).toEqual "wss://a6bcc.api.really.io/v#{protocol.clientVersion}/socket"
 
     it 'should throw error if initialized without passing domain and access token', ->
       expect ->
@@ -43,10 +43,6 @@ describe 'webSocket', ->
         connection = new WebSocketTransport('wss://a6bcc.api.really.io', 1234)
       .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
-    it 'should URLS be different if the user make a new connection with new access token', ->
-      connection_one = new WebSocketTransport('wss://a6bcc.api.really.io', 'token1')
-      connection_two = new WebSocketTransport('wss://a6bcc.api.really.io', 'token2')
-      expect(connection_one.url).not.toEqual connection_two.url
 
   describe 'connect', ->
 
@@ -59,13 +55,14 @@ describe 'webSocket', ->
       socket2 = connection.socket
       expect(socket2).toBe(socket1)
 
-    it 'should throw exception when server is blocked/not found', ->
+    xit 'should throw exception when server is blocked/not found', (done)->
       url = 'ws://a6bcc.api.really.com'
+      connection = new WebSocketTransport(url, 'xxwmn93p0h')
       expect ->
-        connection = new WebSocketTransport(url, 'xxwmn93p0h')
         connection.connect()
       .toThrow new ReallyErorr "Server with URL: #{url} is not found"
-
+      done()
+      
     it 'should send first message', (done) ->
       connection = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'xxwmn93p0h')
       connection.connect()
@@ -148,7 +145,7 @@ describe 'webSocket', ->
 
     it 'should return false if socket is not initialized', ->
       ws.socket = null
-      expect(ws.isConnected()).toBeFalse()
+      expect(ws.isConnected()).toBeFalsy()
 
     it 'should return true if socket is connected/open', ->
       ws.socket.onopen = ->
