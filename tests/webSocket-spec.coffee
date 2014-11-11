@@ -1,75 +1,69 @@
-# 
+#
 # Module dependencies.
-# 
+#
 
 CONFIG              = require './support/server/config.coffee'
 protocol            = require '../src/protocol.coffee'
 ReallyErorr         = require '../src/really-error.coffee'
 WebSocketTransport  = require '../src/transports/webSocket.coffee'
-customMatchers      = require './custom-matchers.coffee'
-<<<<<<< HEAD
-=======
-Emitter             = require 'component-emitter'
->>>>>>> writing tests for send, disconnect and isConnected functions
+ws = {}
 
 describe 'webSocket', ->
-  beforeEach ->
-    jasmine.addMatchers(customMatchers)
-    debugger
 
   describe 'initialization', ->
+
     it 'should be initialized with URL', ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
-      expect(connection.url).toEqual "wss://a6bcc.api.really.io/v#{protocol.clientVersion}/socket?access_token=ibj88w5aye"
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
+      expect(ws.url).toEqual "wss://a6bcc.api.really.io/v#{protocol.clientVersion}/socket"
 
     it 'should throw error if initialized without passing domain and access token', ->
       expect ->
-        connection = new WebSocketTransport()
+        ws = new WebSocketTransport()
       .toThrow new ReallyErorr 'Can\'t initialize connection without passing domain and access token'
 
     it 'should throw error if initialized without passing access token', ->
       expect ->
-        connection = new WebSocketTransport('wss://a6bcc.api.really.io', undefined)
+        ws = new WebSocketTransport('wss://a6bcc.api.really.io', undefined)
       .toThrow new ReallyErorr 'Can\'t initialize connection without passing domain and access token'
 
     it 'should throw error if initialized without passing domain', ->
       expect ->
-        connection = new WebSocketTransport(undefined, 'ibj88w5aye')
+        ws = new WebSocketTransport(undefined, 'ibj88w5aye')
       .toThrow new ReallyErorr 'Can\'t initialize connection without passing domain and access token'
 
     it 'should generate URL with type of string', ->
       expect ->
-        connection = new WebSocketTransport(1234, 1234)
+        ws = new WebSocketTransport(1234, 1234)
       .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
     it 'should accept access token with type of string', ->
       expect ->
-        connection = new WebSocketTransport('wss://a6bcc.api.really.io', 1234)
+        ws = new WebSocketTransport('wss://a6bcc.api.really.io', 1234)
       .toThrow new ReallyErorr 'Only <String> values are allowed for domain and access token'
 
   describe 'connect', ->
 
     it 'should initialize @socket only one time (singleton)', ->
-      connection = new WebSocketTransport('wss://a6bcc.api.really.io','ibj88w5aye')
-      connection.connect()
-      socket1 = connection.socket
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io','ibj88w5aye')
+      ws.connect()
+      socket1 = ws.socket
       expect(socket1).toBeDefined()
-      connection.connect()
-      socket2 = connection.socket
+      ws.connect()
+      socket2 = ws.socket
       expect(socket2).toBe(socket1)
 
     it 'should throw exception when server is blocked/not found', ->
       url = 'ws://a6bcc.api.really.com'
+      ws = new WebSocketTransport(url, 'ibj88w5aye')
       expect ->
-        connection = new WebSocketTransport(url, 'ibj88w5aye')
-        connection.connect()
+        ws.connect()
       .toThrow new ReallyErorr "Server with URL: #{url} is not found"
 
     it 'should send first message', (done) ->
-      connection = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
-      connection.connect()
-      message = {cmd: 'init', tag: 1}
-      connection.on 'message', (msg) ->
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
+      ws.connect()
+      message = {tag: 1, 'cmd': 'init', accessToken: 'Ac66bf'}
+      ws.on 'message', (msg) ->
         expect(message).toEqual msg
         done()
 
@@ -77,24 +71,27 @@ describe 'webSocket', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       ws.connect()
       ws.socket.onopen = ->
-        ready_state = ws.socket.readyState
-        expect(ready_state).toEqual ws.socket.OPEN
+        readyState = ws.socket.readyState
+        expect(readyState).toEqual ws.socket.OPEN
         done()
 
-    it 'should trigger initialized event with user data, after successful connection', (done) ->
+    it 'should trigger initialized event with user data, after calling success callback', (done) ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       ws.connect()
+      x = ->
+          expect(ws.initialized).toBeTruthy()
+
       ws.on 'message', (msg) ->
-        expect(ws.initialized).toBeTruthy()
+        setTimeout x, 50000
+        debugger
         done()
 
-    it 'should throw exception if wrong format of initialization, after successful connection', ->
-
+    it 'should throw exception, after calling error callback if wrong format of initialization message', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake')
       ws.connect()
-      spyOn(ws.callbacksBuffer._callbacks[1], 'error')
+      spy = spyOn(ws.callbacksBuffer._callbacks[1], 'error')
       ws.on 'message', (msg) ->
-        expect(ws.callbacksBuffer._callbacks[1].error).toHaveBeenCalled()
+        expect(spy).toHaveBeenCalled()
         done()
 
   describe 'send', ->
@@ -107,10 +104,10 @@ describe 'webSocket', ->
     it 'should send data with string format with included tag', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       ws.connect();
-      spyOn(ws.socket, 'send')
-      message = {cmd: 'init'}
+      spy = spyOn(ws.socket, 'send')
+      message = {cmd: 'init', accessToken: 'Ac66bf'}
       ws.send(message, {})
-      expect(ws.socket.send).toHaveBeenCalledWith('{cmd: \'init\', tag: 2}')
+      expect(spy).toHaveBeenCalledWith('{tag: 2, cmd: \'init\', accessToken: \'Ac66bf \'}')
 
   describe 'disconnect', ->
 
@@ -119,10 +116,11 @@ describe 'webSocket', ->
       ws.connect()
 
     it 'should close the websocket transport', (done) ->
+      #To be fixed
       ws.socket.onopen = ->
         ws.disconnect()
-        ready_state = ws.socket.readyState
-        expect(ready_state).toEqual ws.socket.CLOSE
+        readyState = ws.socket.readyState
+        expect(readyState).toEqual ws.socket.CLOSE
         done()
 
 
@@ -147,7 +145,7 @@ describe 'webSocket', ->
 
     it 'should return false if socket is not initialized', ->
       ws.socket = null
-      expect(ws.isConnected()).toBeFalse()
+      expect(ws.isConnected()).toBeFalsy()
 
     it 'should return true if socket is connected/open', ->
       ws.socket.onopen = ->
