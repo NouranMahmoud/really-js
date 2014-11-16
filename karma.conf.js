@@ -74,7 +74,8 @@ module.exports = function(config) {
 
     browserify: {
       "debug": true,
-      transform: ['coffeeify', 'browserify-istanbul']
+      // transform: ['coffeeify', 'browserify-istanbul']
+      transform: ['coffeeify']
     }
   });
 };

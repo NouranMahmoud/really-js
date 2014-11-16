@@ -19,6 +19,7 @@ class WebSocketTransport extends Transport
 
     @socket = null
     @callbacksBuffer = new CallbacksBuffer
+    @_msessagesBuffer = []
     @pushHandler = PushHandler
 
     # connection not initialized yet "we haven't send first message yet"
@@ -37,43 +38,52 @@ class WebSocketTransport extends Transport
 
     @socket.addEventListener 'close', =>
       @emit 'closed'
+    
+    @socket.addEventListener 'error', =>
+      @emit 'error'
+      
 
     @socket.addEventListener 'message', (e) =>
-      {data} = e
+      data = JSON.parse e.data
 
       if _.has data, 'tag'
         @callbacksBuffer.handle data
       else
         @pushHandler.handle data
 
-      @emit 'message', JSON.parse data
+      @emit 'message', data
 
-  connect: (successCallback, errorCallback) ->
+  connect: () ->
     # singleton websocket
     @socket ?= new WebSocket @url
     
     @socket.addEventListener 'error', () =>
-      @socket.removeEventListener 'error'
-      throw new ReallyError "Server with URL: #{@url} is not found"
-      errorCallback()
-
+     console.log "error initializing websocket with URL: #{@url}"
+   
     _bindWebSocketEvents.call(this)
 
     _sendFirstMessage = =>
       success = (data) =>
         @initialized = true
+        # send messages in buffer
+        debugger
+        @send(message, options) for {message, options} in @_msessagesBuffer
         @emit 'initialized', data
 
       error = (data) =>
         @initialized = false
+        @emit 'initializationError', data
         throw new ReallyError "An error happened when initializing connection with server, data returned #{data}"
 
-      @send protocol.getInitializationMessage(), {success, error}
+      msg = protocol.getInitializationMessage()
+      @send msg, {success, error}
 
     @socket.addEventListener 'open', ->
       _sendFirstMessage()
-      successCallback()
 
+    return @socket
+
+  
   disconnect: () ->
     @socket.close()
     @socket = null
@@ -81,6 +91,15 @@ class WebSocketTransport extends Transport
     _destroy.call(this)
 
   send: (message, options) ->
+    unless @isConnected() or @socket.readyState is @socket.CONNECTING
+      throw new ReallyError 'Connection to the server is not established'
+
+    # if connection is not initialized and this isn't the initialization message 
+    # buffer messages and send them after initialization
+    unless @initialized or message.type is 'initialization'
+      @_msessagesBuffer.push {message, options}
+      return
+    # connection is initialized send the message
     {type} = message
     {success, error} = options
     message.data.tag = @callbacksBuffer.add {type, success, error}

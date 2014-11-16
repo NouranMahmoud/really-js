@@ -21,10 +21,12 @@ module.exports =
     'type': 'initialization'
     'data':
       'cmd': @commands.init
-      'accessTOken': authenticator.getAccessToken()
+      'accessToken': authenticator.getAccessToken()
 
   createMessage: (res) ->
-    cmd: @commands.create
-    res: res
+    type: 'create'
+    data:
+      cmd: @commands.create
+      res: res
 
   isErrorMessage: (message) -> _.has message, 'error'
