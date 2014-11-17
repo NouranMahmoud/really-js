@@ -7,3 +7,4 @@ before_install:
 before_scripts:
   - npm update -g npm
   - sudo node tests/support/server/index.js &
+  - sleep 5
