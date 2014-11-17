@@ -14,7 +14,7 @@
   "devDependencies": {
     "browserify": "^6.1.0",
     "browserify-istanbul": "0.1.2",
-    "coffee-script": "^1.8.0",
+    "coffee-script": "1.8.0",
     "coffeeify": "^0.7.0",
     "coffeelint": "^1.6.1",
     "grunt": "^0.4.5",
