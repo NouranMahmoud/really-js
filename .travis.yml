@@ -2,4 +2,5 @@ language: node_js
 node_js:
   - 0.10.2
 before_scripts:
+  - npm update -g npm
   - node tests/support/server/index.js
