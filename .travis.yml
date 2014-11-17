@@ -3,4 +3,5 @@ node_js:
   - 0.10.33
 before_scripts:
   - npm update -g npm
+  - sleep 5
   - node tests/support/server/index.js
