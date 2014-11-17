@@ -87,7 +87,6 @@ describe 'webSocket', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake')
       initializationErrorEventFired = false
       ws.on 'initializationError', () ->
-        console.log 'HOOOO'
         initializationErrorEventFired = true
 
       ws.connect()
@@ -105,8 +104,8 @@ describe 'webSocket', ->
       #   done()
       
 
-  ddescribe 'send', () ->
-    iit 'shouldn\'t send messages before initializing', (done) ->
+  describe 'send', () ->
+    it 'shouldn\'t send messages before initializing', (done) ->
       connection = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       setTimeout(-> 
         connection.connect()

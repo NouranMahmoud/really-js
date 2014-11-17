@@ -66,7 +66,6 @@ class WebSocketTransport extends Transport
       success = (data) =>
         @initialized = true
         # send messages in buffer
-        debugger
         @send(message, options) for {message, options} in @_msessagesBuffer
         @emit 'initialized', data
 
