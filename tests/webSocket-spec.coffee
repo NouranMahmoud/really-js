@@ -1,6 +1,4 @@
-#
-# Module dependencies.
-#
+
 
 CONFIG              = require './support/server/config.coffee'
 protocol            = require '../src/protocol.coffee'
