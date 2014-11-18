@@ -53,7 +53,7 @@ describe 'webSocket', ->
       setTimeout (->
         expect(connected).toBeFalsy() 
         done()
-      ), 5000
+      ), 2000
 
     it 'should send first message', (done) ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
