@@ -6,3 +6,4 @@ before_install:
   - "sh -e /etc/init.d/xvfb start"
 before_scripts:
   - npm update -g npm
+  - npm install forever -g

@@ -7,7 +7,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/support/server/index.js & ; ./node_modules/karma/bin/karma start --browsers Firefox --single-run"
+    "test": "forever start tests/support/server/index.js ; ./node_modules/karma/bin/karma start --browsers Firefox --single-run"
   },
   "author": "Cloud9ers",
   "license": "ISC",
