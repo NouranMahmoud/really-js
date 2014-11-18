@@ -8,3 +8,5 @@ before_script:
   - sleep 3
   - node tests/support/server/index.js
   - sleep 3
+
+script: ./node_modules/karma/bin/karma start --browsers Firefox --single-run
