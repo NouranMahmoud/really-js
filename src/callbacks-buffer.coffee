@@ -10,7 +10,6 @@ class CallbacksBuffer
     @tag = 0
     @_callbacks = {}
 
-  noop = ->
   
   handle: (message) ->
     {tag} = message
@@ -26,8 +25,6 @@ class CallbacksBuffer
   add: (args) ->
     {type, success, error} = args
     type ?= 'default'
-    success ?= noop
-    error ?= noop
     tag = newTag.call(this)
     
     @_callbacks[tag] = {type, success, error}

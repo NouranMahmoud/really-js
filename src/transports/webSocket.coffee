@@ -53,6 +53,17 @@ class WebSocketTransport extends Transport
 
       @emit 'message', data
 
+  _startHearetbeat = () ->
+    time = Date.now()
+    @send 
+      type: 'poke'
+      cmd: 'poke'
+      timestamp: time
+
+    setTimeout( ->
+      # did server poke back??
+    10e3)
+
   connect: () ->
     # singleton websocket
     @socket ?= new WebSocket @url
@@ -66,7 +77,13 @@ class WebSocketTransport extends Transport
       success = (data) =>
         @initialized = true
         # send messages in buffer
-        @send(message, options) for {message, options} in @_msessagesBuffer
+        setTimeout(->
+          @send(message, options) for {message, options} in @_msessagesBuffer
+        , 0)
+
+        # start heartbeat
+        _startHearetbeat()
+
         @emit 'initialized', data
 
       error = (data) =>
@@ -100,7 +117,8 @@ class WebSocketTransport extends Transport
       return
     # connection is initialized send the message
     {type} = message
-    {success, error} = options
+    success = options?.success or _.noop
+    error = options?.error or _.noop
     message.data.tag = @callbacksBuffer.add {type, success, error}
     @socket.send JSON.stringify message.data
 

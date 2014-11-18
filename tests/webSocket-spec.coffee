@@ -1,4 +1,6 @@
-
+#
+# Module dependencies.
+#
 
 CONFIG              = require './support/server/config.coffee'
 protocol            = require '../src/protocol.coffee'
@@ -53,7 +55,7 @@ describe 'webSocket', ->
       setTimeout (->
         expect(connected).toBeFalsy() 
         done()
-      ), 2000
+      ), 1000
 
     it 'should send first message', (done) ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
@@ -103,7 +105,7 @@ describe 'webSocket', ->
       
 
   describe 'send', () ->
-    xit 'shouldn\'t send messages before initializing', (done) ->
+    it 'shouldn\'t send messages before initializing', (done) ->
       connection = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       setTimeout(-> 
         connection.connect()
