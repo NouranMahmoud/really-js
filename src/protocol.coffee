@@ -16,6 +16,7 @@ module.exports =
     'read': 'read'
     'update': 'update'
     'delete': 'delete'
+    'heartbeat': 'poke'
 
   getInitializationMessage: () ->
     'type': 'initialization'
@@ -28,5 +29,13 @@ module.exports =
     data:
       cmd: @commands.create
       res: res
+
+  heartbeatMessage: () ->
+    time = Date.now()
+    
+    type: 'poke'
+    data:
+      cmd: @commands.heartbeat
+      timestamp: time
 
   isErrorMessage: (message) -> _.has message, 'error'

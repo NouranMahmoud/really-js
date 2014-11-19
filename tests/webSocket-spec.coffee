@@ -61,7 +61,7 @@ describe 'webSocket', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye')
       ws.connect()
       message = {tag: 1, 'cmd': 'init', accessToken: 'xxwmn93p0h'}
-      ws.on 'message', (msg) ->
+      ws.once 'message', (msg) ->
         expect(message).toEqual msg
         done()
 
@@ -90,7 +90,7 @@ describe 'webSocket', ->
         initializationErrorEventFired = true
 
       ws.connect()
-      ws.send testCmd: 'give-me-error'
+      ws.send data: testCmd: 'give-me-error'
 
       setTimeout (->
         expect(initializationErrorEventFired).toBeTruthy()

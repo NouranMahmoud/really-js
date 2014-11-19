@@ -2,7 +2,7 @@
  *  Really.js v0.0.1
  *  Copyright (C) 2014-2015 Really Inc. <http://really.io>
  *  
- *  Date: Wed Nov 05 2014 18:36:13
+ *  Date: Tue Nov 18 2014 19:32:05
  */
 !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.Really=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 
@@ -7005,6 +7005,15 @@ function ws(uri, protocols, opts) {
 if (WebSocket) ws.prototype = WebSocket.prototype;
 
 },{}],4:[function(require,module,exports){
+module.exports = {
+  getAccessToken: function() {
+    return 'xxwmn93p0h';
+  }
+};
+
+
+
+},{}],5:[function(require,module,exports){
 
 /**
  * Copyright (C) 2014-2015 Really Inc. <http://really.io>
@@ -7017,22 +7026,20 @@ var CallbacksBuffer, protocol;
 protocol = require('./protocol.coffee');
 
 CallbacksBuffer = (function() {
-  var handle, newTag, noop;
+  var newTag;
 
   function CallbacksBuffer() {
     this.tag = 0;
     this._callbacks = {};
   }
 
-  noop = function() {};
-
-  handle = function(message) {
+  CallbacksBuffer.prototype.handle = function(message) {
     var tag;
     tag = message.tag;
     if (protocol.isErrorMessage(message)) {
-      this._callbacks[tag]['error'];
+      this._callbacks[tag]['error'].call();
     } else {
-      this._callbacks[tag]['success'];
+      this._callbacks[tag]['success'].call();
     }
     return delete this._callbacks[tag];
   };
@@ -7042,12 +7049,6 @@ CallbacksBuffer = (function() {
     type = args.type, success = args.success, error = args.error;
     if (type == null) {
       type = 'default';
-    }
-    if (success == null) {
-      success = noop;
-    }
-    if (error == null) {
-      error = noop;
     }
     tag = newTag.call(this);
     this._callbacks[tag] = {
@@ -7070,15 +7071,17 @@ module.exports = CallbacksBuffer;
 
 
 
-},{"./protocol.coffee":5}],5:[function(require,module,exports){
+},{"./protocol.coffee":6}],6:[function(require,module,exports){
 
 /**
  * Protocol 
  * This module is responsible for generating protocol messages
  */
-var VERSION, _;
+var VERSION, authenticator, _;
 
 _ = require('lodash');
+
+authenticator = require('./authenticator.coffee');
 
 VERSION = '0';
 
@@ -7095,14 +7098,18 @@ module.exports = {
     return {
       'type': 'initialization',
       'data': {
-        'cmd': this.commands.init
+        'cmd': this.commands.init,
+        'accessToken': authenticator.getAccessToken()
       }
     };
   },
   createMessage: function(res) {
     return {
-      cmd: this.commands.create,
-      res: res
+      type: 'create',
+      data: {
+        cmd: this.commands.create,
+        res: res
+      }
     };
   },
   isErrorMessage: function(message) {
@@ -7112,7 +7119,7 @@ module.exports = {
 
 
 
-},{"lodash":2}],6:[function(require,module,exports){
+},{"./authenticator.coffee":4,"lodash":2}],7:[function(require,module,exports){
 module.exports = {
   handle: function(message) {
     switch (message.evt) {
@@ -7128,7 +7135,7 @@ module.exports = {
 
 
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 
 /**
  * ReallyError
@@ -7155,7 +7162,7 @@ module.exports = ReallyError;
 
 
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var Channel, Emitter, Really;
 
 Channel = require('./transports/webSocket.coffee');
@@ -7165,6 +7172,7 @@ Emitter = require('component-emitter');
 Really = (function() {
   function Really(domain) {
     console.log('Really Object initialized');
+    this.channel = Channel;
   }
 
   Emitter(Really.prototype);
@@ -7177,7 +7185,7 @@ module.exports = Really;
 
 
 
-},{"./transports/webSocket.coffee":10,"component-emitter":1}],9:[function(require,module,exports){
+},{"./transports/webSocket.coffee":11,"component-emitter":1}],10:[function(require,module,exports){
 
 /**
  * Transport
@@ -7210,7 +7218,7 @@ module.exports = Transport;
 
 
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var CallbacksBuffer, Emitter, PushHandler, ReallyError, Transport, WebSocket, WebSocketTransport, protocol, _,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -7228,6 +7236,8 @@ protocol = require('../protocol.coffee');
 Emitter = require('component-emitter');
 
 CallbacksBuffer = require('../callbacks-buffer.coffee');
+
+_ = require('lodash');
 
 PushHandler = require('../push-handler.coffee');
 
@@ -7247,48 +7257,74 @@ WebSocketTransport = (function(_super) {
     }
     this.socket = null;
     this.callbacksBuffer = new CallbacksBuffer;
+    this._msessagesBuffer = [];
     this.pushHandler = PushHandler;
     this.initialized = false;
-    this.url = "" + domain + "/v" + protocol.clientVersion + "/socket?access_token=" + accessToken;
+    this.url = "" + domain + "/v" + protocol.clientVersion + "/socket";
   }
 
   Emitter(WebSocketTransport.prototype);
 
-  _destroy = function() {
-    return this.off();
-  };
+  _destroy = function() {};
 
   _bindWebSocketEvents = function() {
     this.socket.addEventListener('open', (function(_this) {
       return function() {
-        console.log('OPEN');
         return _this.emit('opened');
       };
     })(this));
     this.socket.addEventListener('close', (function(_this) {
       return function() {
-        console.log('CLOSED');
         return _this.emit('closed');
       };
     })(this));
     this.socket.addEventListener('error', (function(_this) {
       return function() {
-        console.log('CLOSED');
         return _this.emit('error');
       };
     })(this));
     return this.socket.addEventListener('message', (function(_this) {
       return function(e) {
         var data;
-        data = e.data;
+        data = JSON.parse(e.data);
         if (_.has(data, 'tag')) {
           _this.callbacksBuffer.handle(data);
         } else {
           _this.pushHandler.handle(data);
         }
-        return _this.emit('message', JSON.parse(data));
+        return _this.emit('message', data);
       };
     })(this));
+  };
+
+  WebSocketTransport.prototype._startHearetbeat = function() {
+    var heartbeatMessage, success, time;
+    time = Date.now();
+    heartbeatMessage = {
+      type: 'poke',
+      data: {
+        cmd: 'poke',
+        timestamp: time
+      }
+    };
+    success = (function(_this) {
+      return function(data) {
+        clearTimeout(_this.heartbeatTimeOut);
+        return setTimeout(function() {
+          return _this._startHearetbeat.call(_this);
+        }, 5e3);
+      };
+    })(this);
+    this.send(heartbeatMessage, {
+      success: success
+    });
+    return this.heartbeatTimeOut = setTimeout((function(_this) {
+      return function() {
+        clearTimeout(_this.heartbeatTimeOut);
+        _this.disconnect();
+        return console.log('heartbeat timeout error');
+      };
+    })(this), 5e3);
   };
 
   WebSocketTransport.prototype.connect = function() {
@@ -7296,34 +7332,45 @@ WebSocketTransport = (function(_super) {
     if (this.socket == null) {
       this.socket = new WebSocket(this.url);
     }
-    this.once('error', function() {
-      throw new ReallyError("Server with URL: " + url + " is not found");
-    });
-    this.once('closed', function(e) {
-      console.log(e.code);
-      return console.log(e.reason);
-    });
+    this.socket.addEventListener('error', (function(_this) {
+      return function() {
+        return console.log("error initializing websocket with URL: " + _this.url);
+      };
+    })(this));
     _bindWebSocketEvents.call(this);
     _sendFirstMessage = (function(_this) {
       return function() {
-        var error, success;
+        var error, msg, success;
         success = function(data) {
           _this.initialized = true;
+          setTimeout(function() {
+            var message, options, _i, _len, _ref, _ref1, _results;
+            _ref = _this._msessagesBuffer;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              _ref1 = _ref[_i], message = _ref1.message, options = _ref1.options;
+              _results.push(_this.send(message, options));
+            }
+            return _results;
+          }, 0);
+          _this._startHearetbeat();
           return _this.emit('initialized', data);
         };
         error = function(data) {
           _this.initialized = false;
-          throw new ReallyError("An error happened when initializing connection with server, data returned " + data);
+          return _this.emit('initializationError', data);
         };
-        return _this.send(protocol.getInitializationMessage(), {
+        msg = protocol.getInitializationMessage();
+        return _this.send(msg, {
           success: success,
           error: error
         });
       };
     })(this);
-    return this.socket.addEventListener('open', function() {
+    this.socket.addEventListener('open', function() {
       return _sendFirstMessage();
     });
+    return this.socket;
   };
 
   WebSocketTransport.prototype.disconnect = function() {
@@ -7335,8 +7382,19 @@ WebSocketTransport = (function(_super) {
 
   WebSocketTransport.prototype.send = function(message, options) {
     var error, success, type;
+    if (!(this.isConnected() || this.socket.readyState === this.socket.CONNECTING)) {
+      throw new ReallyError('Connection to the server is not established');
+    }
+    if (!(this.initialized || message.type === 'initialization')) {
+      this._msessagesBuffer.push({
+        message: message,
+        options: options
+      });
+      return;
+    }
     type = message.type;
-    success = options.success, error = options.error;
+    success = (options != null ? options.success : void 0) || _.noop;
+    error = (options != null ? options.error : void 0) || _.noop;
     message.data.tag = this.callbacksBuffer.add({
       type: type,
       success: success,
@@ -7360,5 +7418,5 @@ module.exports = WebSocketTransport;
 
 
 
-},{"../callbacks-buffer.coffee":4,"../protocol.coffee":5,"../push-handler.coffee":6,"../really-error.coffee":7,"../transport.coffee":9,"component-emitter":1,"lodash":2,"ws":3}]},{},[8])(8)
+},{"../callbacks-buffer.coffee":5,"../protocol.coffee":6,"../push-handler.coffee":7,"../really-error.coffee":8,"../transport.coffee":10,"component-emitter":1,"lodash":2,"ws":3}]},{},[9])(9)
 });

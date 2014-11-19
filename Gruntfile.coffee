@@ -46,7 +46,7 @@ module.exports = (grunt) ->
 
 
   grunt.registerTask 'build', [
-    'coffeelint',
+    # 'coffeelint',
     'browserify:dist',
     'uglify:dist'
   ]
