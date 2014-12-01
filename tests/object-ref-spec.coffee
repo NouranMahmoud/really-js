@@ -10,6 +10,7 @@ ObjectRef           = require '../src/object-ref'
 describe 'ObjectRef', ->
 
   describe 'initialization', ->
+
     beforeEach ->
       ReallyMock = on: () -> undefined
       global.Really = ReallyMock
@@ -27,14 +28,13 @@ describe 'ObjectRef', ->
       .toThrow new ReallyError('Can not be initialized without resource')
 
   describe 'get', ->
+
     beforeEach ->
       ReallyMock = on: () -> undefined
       global.Really = ReallyMock
 
     afterEach ->
       global.Really = undefined
-
-    
 
     it 'should call channel to send message', ->
       user =  new ObjectRef('/users/123/')
@@ -57,13 +57,14 @@ describe 'ObjectRef', ->
       expect(user.channel.send).toHaveBeenCalled()
 
   describe 'update', ->
+
     beforeEach ->
       ReallyMock = on: () -> undefined
       global.Really = ReallyMock
 
     afterEach ->
       global.Really = undefined
-    
+
     it 'should reject the promise when there are no passed options', (done) ->
       user = new ObjectRef('/users/123/')
       result = user.update()
@@ -109,6 +110,7 @@ describe 'ObjectRef', ->
       expect(user.channel.send).toHaveBeenCalled()
 
   describe 'delete', ->
+
     beforeEach ->
       ReallyMock = on: () -> undefined
       global.Really = ReallyMock
