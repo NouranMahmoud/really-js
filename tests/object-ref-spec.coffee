@@ -36,7 +36,7 @@ describe 'ObjectRef', ->
     afterEach ->
       global.Really = undefined
 
-    it 'should call channel to send message', ->
+    it 'should call channel to send with message and options', ->
       user =  new ObjectRef('/users/123/')
 
       user.channel =
@@ -53,8 +53,44 @@ describe 'ObjectRef', ->
           console.log error.code # 403
           console.log error.message # forbidden
 
+      message = protocol.getMessage(user.res, options.fields)
       result = user.get(options)
-      expect(user.channel.send).toHaveBeenCalled()
+      expect(user.channel.send).toHaveBeenCalledWith(message,
+      {success: options.onSuccess, error: options.onError, complete: options.onComplete})
+
+    it 'should call channel to send without callbacks', ->
+      user =  new ObjectRef('/users/123/')
+
+      user.channel =
+        send: -> 'foo'
+
+      spyOn(user.channel, 'send').and.callThrough()
+      options =
+        fields: ['author', '@card']
+
+      message = protocol.getMessage(user.res, options.fields)
+      result = user.get(options)
+      expect(user.channel.send).toHaveBeenCalledWith(message,
+      {success: options.onSuccess, error: options.onError, complete: options.onComplete})
+    it 'should return rejected promise if ther\' no fields', (done) ->
+      user =  new ObjectRef('/users/123/')
+
+      user.channel =
+        send: -> 'foo'
+
+      spyOn(user.channel, 'send').and.callThrough()
+      options =
+        onSuccess: (data) ->
+          console.log data
+
+        onError: (error) ->
+          console.log error.code # 403
+          console.log error.message # forbidden
+
+      result = user.get(options)
+      result.then null, (err) ->
+        expect(err).toEqual new ReallyError('You should pass array or nothing for fields option')
+        done()
 
   describe 'update', ->
 
@@ -74,15 +110,17 @@ describe 'ObjectRef', ->
         expect(err).toEqual new ReallyError('Can\'t be called without passing arguments')
         done()
 
-    it 'should call channel to send message', ->
+    it 'should call channel to send message with message and options ', ->
       user =  new ObjectRef('/users/123/')
       user.channel =
         send: -> 'foo'
 
       spyOn(user.channel, 'send').and.callThrough()
-      onSuccess = (data) -> console.log data
+
       options =
-        onSuccess: onSuccess
+        onSuccess: (data) -> console.log data
+        onError: (err) -> console.log err
+        onComplete: (data) -> console.log data
         ops: [
             {
               key: 'friends'
@@ -106,8 +144,68 @@ describe 'ObjectRef', ->
               value: 1
             }
           ]
+      message = protocol.updateMessage(user.res, user.rev, options.ops)
       result = user.update(options)
-      expect(user.channel.send).toHaveBeenCalled()
+      expect(user.channel.send).toHaveBeenCalledWith(message,
+        {success: options.onSuccess, error: options.onError, complete: options.onComplete})
+
+    it 'should call channel to send message without callbacks ', ->
+      user =  new ObjectRef('/users/123/')
+      user.channel =
+        send: -> 'foo'
+
+      spyOn(user.channel, 'send').and.callThrough()
+
+      options =
+        ops: [
+            {
+              key: 'friends'
+              op: 'set'
+              value: 'Ahmed'
+            }
+            {
+              key: 'picture.xlarge'
+              op: 'set'
+              value: 'http://koko.com/toto.png'
+            }
+            {
+              key: 'picture[0]'
+              op: 'set'
+              value:
+                xlarge: 'http://koko.toto.png'
+            }
+            {
+              key: 'age'
+              op: 'addNumber'
+              value: 1
+            }
+          ]
+      message = protocol.updateMessage(user.res, user.rev, options.ops)
+      result = user.update(options)
+      expect(user.channel.send).toHaveBeenCalledWith(message,
+        {success: options.onSuccess, error: options.onError, complete: options.onComplete})
+
+    it 'should return rejected promise if ther\' no passed ops', (done) ->
+      user =  new ObjectRef('/users/123/')
+
+      user.channel =
+        send: -> 'foo'
+
+      spyOn(user.channel, 'send').and.callThrough()
+      options =
+        ops: []
+        onSuccess: (data) ->
+          console.log data
+        onError: (error) ->
+          console.log error.code # 403
+          console.log error.message # forbidden
+        onComplete: (data) ->
+          console.log data
+
+      result = user.get(options)
+      result.then null, (err) ->
+        expect(err).toEqual new ReallyError('You should pass array or nothing for fields option')
+        done()
 
   describe 'delete', ->
 
@@ -133,4 +231,6 @@ describe 'ObjectRef', ->
 
       spyOn(user.channel, 'send')
       result = user.delete(options)
-      expect(user.channel.send).toHaveBeenCalled()
+      message = protocol.deleteMessage(user.res)
+      expect(user.channel.send).toHaveBeenCalledWith(message,
+        {success: options.onSuccess, error: options.onError, complete: options.onComplete})
