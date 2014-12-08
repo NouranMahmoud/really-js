@@ -27,6 +27,11 @@ describe 'CollectionRef', ->
         story = new CollectionRef()
       .toThrow new ReallyError('Can not be initialized without resource')
 
+    it 'should raise exception if constructor has no resource', ->
+      expect ->
+        story = new CollectionRef(123)
+      .toThrow new ReallyError('You should pass a resource parameter as String')
+
   describe 'create', ->
 
     beforeEach ->
@@ -42,7 +47,7 @@ describe 'CollectionRef', ->
       story.channel =
         send: -> 'foo'
 
-      spyOn(story.channel, 'send').and.callThrough()
+      spyOn(story.channel, 'send')
       options =
         body: {
           name: 'Ihab',
@@ -59,24 +64,30 @@ describe 'CollectionRef', ->
         onComplete: (data) ->
           console.log data
 
-      message = protocol.createMessage(story.res, options.body)
+      message = spyOn(protocol, 'createMessage').and.returnValue
+        type: 'create'
+        data:
+          cmd: 'create'
+          r: story.res
+        body: options.body
+
       result = story.create(options)
 
-      expect(story.channel.send).toHaveBeenCalledWith message,
-      {success: options.onSuccess, error: options.onError, complete: options.onComplete}
+      expect(story.channel.send).toHaveBeenCalledWith message(),
+        success: options.onSuccess
+        error: options.onError
+        complete: options.onComplete
 
-    it 'should return a rejected promise when passing wrong options (options without body)', ->
-      story = new CollectionRef(12)
+    it 'should return a rejected promise when passing wrong options (options without body)', (done) ->
+
+      spyOn(protocol, 'createMessage').and.throwError new ReallyError('You should pass a body parameter as Object')
+
+      story = new CollectionRef('/stories/*')
       story.channel =
         send: -> 'foo'
 
       options =
-
-        # body: {
-        #   name: 'Ihab',
-        #   age: '99'
-        #   }
-
+        body: 'WrongBody'
         onSuccess: (data) ->
           console.log data
 
@@ -88,9 +99,9 @@ describe 'CollectionRef', ->
           console.log data
 
       result = story.create(options)
-      result.then null, (err) ->
-
+      result.catch (err) ->
         expect(err).toEqual new ReallyError('You should pass a body parameter as Object')
+        done()
 
 
 
@@ -109,7 +120,7 @@ describe 'CollectionRef', ->
       story.channel =
         send: -> 'foo'
 
-      spyOn(story.channel, 'send').and.callThrough()
+      spyOn(story.channel, 'send')
 
       options =
         fields: ['firstname', 'lastname', 'avatar']
@@ -134,11 +145,21 @@ describe 'CollectionRef', ->
           console.log data
 
       protocolOpttions = _.omit options, ['onSuccess', 'onError', 'onComplete']
-      message = protocol.readMessage(story.res, protocolOpttions)
+
+      message = spyOn(protocol, 'readMessage').and.returnValue
+        type: 'read'
+        data:
+          cmd: 'read'
+          r: story.res
+          cmdOpts:
+            fields: protocolOpttions
+
       result = story.read(options)
 
-      expect(story.channel.send).toHaveBeenCalledWith message,
-      {success: options.onSuccess, error: options.onError, complete: options.onComplete}
+      expect(story.channel.send).toHaveBeenCalledWith message(),
+        success: options.onSuccess
+        error: options.onError
+        complete: options.onComplete
 
     it 'should return a rejected promise when passing wrong options', ->
       story = new CollectionRef('/stories/*')
@@ -156,7 +177,7 @@ describe 'CollectionRef', ->
         badParameter: false
 
       result = story.read(options)
-      result.then null, (error) ->
+      result.catch (error) ->
         expect(error).toEqual new ReallyError('The option "badParameter" isn\'t supported')
 
 
