@@ -23,91 +23,140 @@ describe 'CallbacksBuffer', ->
       messageWithoutTag = {error: true}
       expect ->
         buffer.handle(messageWithoutTag)
-      .toThrow new ReallyError('A message should be passed');
+      .toThrow new ReallyError('A message with tag should be passed');
+
+    it 'should throw error if the complete callback raised exception', ->
+      buffer = new CallbacksBuffer()
+      message =
+        tag: 5
+      complete = (data) ->
+        throw new Error('error')
+
+      success = (data) ->
+        console.log 'success'
+
+      buffer._callbacks[5] = {type: 'default', success, complete}
+
+
+      expect ->
+        buffer.handle(message)
+      .toThrow new ReallyError('Error happened when trying to execute your error callback')
+
+    it 'should throw error if the success callback raised exception', ->
+      buffer = new CallbacksBuffer()
+      message =
+        tag: 5
+        success: true
+
+      complete = (data) ->
+        console.log 'complete'
+      success = (data) ->
+        throw new Error('error')
+
+      buffer._callbacks[5] = {type: 'default', success, complete}
+
+      expect ->
+        buffer.handle(message)
+      .toThrow new ReallyError('Error happened when trying to execute your error callback')
+
+    it 'should throw error if the error callback raised exception', ->
+      buffer = new CallbacksBuffer()
+      message =
+        tag: 5
+        error: true
+
+      complete = (data) ->
+        console.log 'complete'
+      error = (data) ->
+        throw new Error('error')
+
+      buffer._callbacks[5] = {type: 'default', error, complete}
+
+      expect ->
+        buffer.handle(message)
+      .toThrow new ReallyError('Error happened when trying to execute your error callback')
 
 
     it 'should invoke the error callback if the message is error message', ->
       buffer = new CallbacksBuffer()
-      messageIsSuccess = true
-      messageWithError    = {tag: 5, error: true }
+      errorMessage =
+        tag: 5
+        error: true
 
-      success = (data) ->
-        console.log 'success'
-      error = (reason) ->
-        console.log 'error'
-        messageIsSuccess = false
-      complete = (data) ->
-        console.log 'complete'
+      options =
+        error: (reason) ->
+          console.log 'error'
 
-      buffer._callbacks[5] = {'default', success, error, complete}
-      buffer.handle(messageWithError)
-      setTimeout (->
-        expect(messageIsSuccess).toBeFalsy()
-      ), 1000
+        complete: (data) ->
+          console.log 'complete'
+
+      spy = spyOn(options, 'error')
+      buffer._callbacks[5] = {type: 'default', error: options.error, complete: options.complete}
+
+      buffer.handle(errorMessage)
+      expect(options.error).toHaveBeenCalled()
+
 
     it 'should invoke the success callback if the message is success message', ->
       buffer = new CallbacksBuffer()
-      messageIsSuccess = false
-      messageWithoutError    = {tag: 5, success: true }
+      errorMessage  =
+        tag: 5
+        success: true
 
-      success = (data) ->
-        console.log 'success'
-        messageIsSuccess = true
-      error = (reason) ->
-        console.log 'error'
-      complete = (data) ->
-        console.log 'complete'
+      options =
+        success: (data) ->
+          console.log 'success'
 
-      buffer._callbacks[5] = {'default', success, error, complete}
-      buffer.handle(messageWithoutError)
-      setTimeout (->
-        expect(messageIsSuccess).toBeTruthy()
-      ), 1000
+        complete: (data) ->
+          console.log 'complete'
+
+      spy = spyOn(options, 'success')
+      buffer._callbacks[5] = {type: 'default', success: options.success, complete: options.complete}
+
+      buffer.handle(errorMessage)
+      expect(options.success).toHaveBeenCalled()
 
     it 'should invoke the complete callback', ->
       buffer = new CallbacksBuffer()
+      message =
+        tag: 5
+        success: true
 
-      messageIsSuccess = false
-      messageIsComplete = false
-      messageWithoutError    = {tag: 5, success: true }
+      options =
+        success: (data) ->
+          console.log 'success'
+        complete: (data) ->
+          console.log 'complete'
 
-      success = (data) ->
-        console.log 'success'
-        messageIsSuccess = true
-      error = (reason) ->
-        console.log 'error'
-      complete = (data) ->
-        console.log 'complete'
-        messageIsComplete = true
+      spyOn(options, 'complete')
+      buffer._callbacks[5] = {type: 'default', success: options.success, complete: options.complete}
 
-      buffer._callbacks[5] = {'default', success, error, complete}
-      buffer.handle(messageWithoutError)
-      setTimeout (->
-        expect(messageIsSuccess).toBeTruthy()
-        expect(messageIsComplete).toBeTruthy()
-      ), 1000
+      buffer.handle(message)
+      expect(options.complete).toHaveBeenCalled()
+
 
     it 'should delete the tag after invoking its callbacks', ->
       buffer = new CallbacksBuffer()
-      messageWithoutError    = {tag: 5, success: true }
+      message =
+        tag: 5
 
       success = (data) ->
         console.log 'success'
-        messageIsSuccess = true
-      error = (reason) ->
-        console.log 'error'
+
       complete = (data) ->
         console.log 'complete'
-        messageIsComplete = true
 
-      buffer._callbacks[5] = {'default', success, error, complete}
-      buffer.handle(messageWithoutError)
+      buffer._callbacks[5] = {type: 'default', success, complete}
+
+      buffer.handle(message)
 
       expect(buffer._callbacks[5]).toBeUndefined()
 
     it 'should throw ReallyError when tag does not exist', ->
       buffer = new CallbacksBuffer()
-      message = {tag: 5, success: true }
+      message =
+        tag: 5
+        success: true
 
       expect ->
         buffer.handle(message)
@@ -124,7 +173,7 @@ describe 'CallbacksBuffer', ->
     it 'should return new tag when passing args', ->
       buffer = new CallbacksBuffer()
       expect(buffer.tag).toEqual 0
-      {type} = 'add'
+      type = 'add'
 
       success = (data) ->
         console.log data
@@ -137,11 +186,3 @@ describe 'CallbacksBuffer', ->
 
       tag = buffer.add {type, success, error, complete}
       expect(tag).toEqual 1
-
-  describe 'newTag', ->
-    it 'should increment the tag', ->
-      buffer = new CallbacksBuffer()
-      expect(buffer.tag).toEqual 0
-      spyOn(buffer, 'add').and.callFake ->
-        tag = newTag.call(buffer)
-        expect(tag).toEqual 1
