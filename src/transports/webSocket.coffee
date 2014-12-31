@@ -10,6 +10,7 @@ Q = require 'q'
 Heartbeat = require '../heartbeat'
 Logger = require '../logger'
 logger = new Logger()
+store = {}
 # TODO: if connection get closed stop the heartbeat
 class WebSocketTransport extends Transport
   constructor: (@domain, @accessToken, @options = {}) ->
@@ -40,16 +41,18 @@ class WebSocketTransport extends Transport
       @emit 'opened'
     
     @socket.addEventListener 'close', =>
-      
+      console.log 'close......................'
       if @options.reconnect
         @emit 'reconnecting'
-        @reconnect(@options.reconnectionMaxTimeout)
+        @reconnect()
       else
         @emit 'closed'
         @disconnect()
     
     @socket.addEventListener 'error', =>
+      console.log "error"
       @emit 'error'
+      console.log  "error emitted"
 
     @socket.addEventListener 'message', (e) =>
       data = JSON.parse e.data
@@ -57,6 +60,7 @@ class WebSocketTransport extends Transport
       @emit 'message', data
   
   send: (message, options = {}, deferred = Q.defer()) ->
+    console.log @isConnected()
     if @isConnected()
       {kind} = message
      
@@ -75,7 +79,6 @@ class WebSocketTransport extends Transport
       @socket.send JSON.stringify message.data
       
       return deferred.promise
-    
     else
       strategy = if _.isFunction @options.onDisconnect then 'custom' else @options.onDisconnect
       _handleDisconnected = (strategy = 'fail') =>
@@ -93,6 +96,7 @@ class WebSocketTransport extends Transport
         
         strategies = {fail, buffer, custom}
         try
+          console.log strategy
           strategies[strategy]()
         catch e
           throw e if e instanceof ReallyError
@@ -112,6 +116,7 @@ class WebSocketTransport extends Transport
       @emit 'initialized', data
     
     error = (data) =>
+      console.log "-----------------------------------"
       @initialized = false
       @emit 'initializationError', data
     msg = protocol.initializationMessage(@accessToken)
@@ -119,30 +124,24 @@ class WebSocketTransport extends Transport
     @send msg, {success, error}
 
   connect: (deferred = Q.defer()) ->
-    @socket = new WebSocket(@url)
+    @socket = if store[@url] then store[@url] else store[@url] = new WebSocket(@url)
     @socket.addEventListener 'error', _.once ->
-      console.log "error initializing websocket with URL: #{@url}"
+      console.log "Error initializing websocket with URL: #{@url}"
    
     _bindWebSocketEvents.call(this, deferred)
     return deferred.promise
-  
-  reconnect: (timeout) ->
-    @attempts += 1
-    
-    generateTimeout: () ->
-      maxInterval = (Math.pow(2, @attemps) - 1) * 1000
+
+  reconnect: () ->
+
+    generateTimeout = () =>
+      maxInterval = (Math.pow(2, @attempts) - 1) * 1000
       if maxInterval > @options.reconnectionMaxTimeout
         maxInterval = @options.reconnectionMaxTimeout
-      
       Math.random() * maxInterval
-    
-    @connect().timeout(timeout).catch () ->
-      timeout = generateTimeout timeout
-      reconnect(timeout)
-    
+    @attempts += 1
+    @connect().timeout(generateTimeout()).catch (e) ->
+      reconnect()
 
-
-  
   _.flush = ->
     setTimeout(=>
       @send(message, options, deferred) for {message, options, deferred} in @_messagesBuffer
@@ -159,9 +158,11 @@ class WebSocketTransport extends Transport
   _destroy =  () -> @off()
  
   disconnect: () ->
-    _destroy.call(this)
+    console.log 'disconnected'
     @socket?.close()
+    _destroy.call(this)
     @socket = null
     @initialized = false
+    store[@url] = undefined
 
 module.exports = WebSocketTransport
