@@ -9,6 +9,7 @@ Q = require 'q'
 Heartbeat = require '../heartbeat'
 Logger = require '../logger'
 logger = new Logger()
+
 # TODO: if connection get closed stop the heartbeat
 class WebSocketTransport extends Transport
   constructor: (@domain, @accessToken, @options = {}) ->
@@ -36,10 +37,9 @@ class WebSocketTransport extends Transport
       @emit 'opened'
     
     @socket.addEventListener 'close', =>
-      
       if @options.reconnect
         @emit 'reconnecting'
-        @reconnect(@options.reconnectionMaxTimeout)
+        @reconnect()
       else
         @emit 'closed'
         @disconnect()
@@ -74,7 +74,7 @@ class WebSocketTransport extends Transport
     
     else
       strategy = if _.isFunction @options.onDisconnect then 'custom' else @options.onDisconnect
-      _handleDisconnected = (strategy = 'fail') =>
+      _handleDisconnected = (strategy) =>
         fail = () ->
           deferred.reject new ReallyError('Connection to the server is not established')
         
@@ -124,12 +124,14 @@ class WebSocketTransport extends Transport
   
   reconnect: () ->
     generateTimeout = () =>
-      maxInterval = (Math.pow(2, @attemps) - 1) * 1000
+      maxInterval = (Math.pow(2, @attempts) - 1) * 1000
       if maxInterval > @options.reconnectionMaxTimeout
         maxInterval = @options.reconnectionMaxTimeout
       
       Math.random() * maxInterval
     @attempts += 1
+    #console.log "Times of reconnect"+@attempts
+    #console.log "Timeout for every reconnect attemption"+generateTimeout()
     @connect().timeout(generateTimeout()).catch (e) ->
       reconnect()
     

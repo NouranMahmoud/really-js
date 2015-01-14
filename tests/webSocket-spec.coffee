@@ -20,23 +20,23 @@ describe 'webSocket', ->
   describe 'initialization', ->
 
     it 'should construct URL that matches Really URL scheme when domain is passed', ->
-      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options)
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
       expect(ws.url).toEqual "wss://a6bcc.api.really.io/v#{protocol.clientVersion}/socket"
 
     it 'should initialize socket', ->
-      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options)
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
       expect(ws.socket).toBeNull()
 
     it 'should initialize callbacks buffer', ->
-      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options)
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
       expect(ws.callbacksBuffer).toEqual new CallbacksBuffer()
 
     it 'should initialize messages buffer', ->
-      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options)
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
       expect(ws._messagesBuffer).toEqual []
 
     it 'should set initialized to false', ->
-      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options)
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
       expect(ws.initialized).toBeFalsy()
 
     it 'should put appropriate default values for options if not supplied', ->
@@ -47,8 +47,7 @@ describe 'webSocket', ->
         reconnect: true
         onDisconnect: 'buffer'
 
-      options0 = {}
-      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options0)
+      ws = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye')
       expect(ws.options).toEqual defaultValues
 
       options1 =
@@ -81,18 +80,8 @@ describe 'webSocket', ->
       ws4 = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options4)
       expect(ws4.options).toEqual options4
 
-      options5 =
-        reconnectionMaxTimeout: 25e3
-        heartbeatTimeout: 4e3
-        heartbeatInterval: 4e3
-        reconnect: false
-        onDisconnect: 'final'
 
-      ws5 = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options5)
-      expect(ws5.options).toEqual options5
-
-
-    it 'should fire events per each instance', ->
+    xit 'should fire events per each instance', ->
       emitter1 = false
       ws1 = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options)
       ws1.on 'test', ->
@@ -170,15 +159,14 @@ describe 'webSocket', ->
           ws.disconnect()
           done()
 
-      it 'should reslove a promise when connection open', (done) ->
+      it 'should resolve a promise when connection open', (done) ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
         promise = ws.connect()
         ws.socket.addEventListener 'open', () ->
-          promise.done( (data) ->
+          promise.done (data) ->
             expect(true).toBeTruthy()
             ws.disconnect()
             done()
-          , null)
 
       it 'should send first message when connection open', (done) ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
@@ -285,11 +273,11 @@ describe 'webSocket', ->
       it 'should send message with tag', (done) ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
         ws.connect()
+        message = protocol.createMessage('/users')
         spyOn(ws.socket, 'send').and.callThrough()
         ws.socket.addEventListener 'open', () ->
-
-          ws.send(protocol.createMessage('/users'), {})
-          expect(ws.socket.send).toHaveBeenCalled()
+          ws.send(message, {})
+          expect(ws.socket.send).toHaveBeenCalledWith JSON.stringify message.data, jasmine.any(Object)
           ws.disconnect()
           done()
 
@@ -297,7 +285,7 @@ describe 'webSocket', ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
         ws.connect()
         message = protocol.createMessage('/users')
-        {kind} = message
+        kind = message.kind
         
         success = (data) -> 'success'
         error = (reason) -> 'error'
@@ -306,7 +294,12 @@ describe 'webSocket', ->
         ws.socket.addEventListener 'open', () ->
           spyOn(ws.callbacksBuffer, 'add').and.callThrough()
           ws.send(message, {success, error, complete})
-          expect(ws.callbacksBuffer.add).toHaveBeenCalled()
+          expect(ws.callbacksBuffer.add).toHaveBeenCalledWith(
+            kind: kind
+            success: jasmine.any(Function)
+            error: jasmine.any(Function)
+            complete: jasmine.any(Function)
+          )
           ws.disconnect()
           done()
 
@@ -333,7 +326,7 @@ describe 'webSocket', ->
           ws.disconnect()
           done()
 
-      it 'should reslove the promise when success callback occurs', (done) ->
+      it 'should resolve the promise when success callback occurs', (done) ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
         ws.connect()
         message = protocol.createMessage('/users')
@@ -350,13 +343,12 @@ describe 'webSocket', ->
           done()
 
       it 'should reject the promise when error callback occurs', (done) ->
-        jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
         ws.connect()
         message =
           kind: 'give-me-error'
           data:
-            cmd: 'error'
+            error: 'true'
 
         errorMessage = undefined
         success = (data) -> 'success'
@@ -375,7 +367,6 @@ describe 'webSocket', ->
 
       it 'should buffer messages if strategy chosen is "buffer"', ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
-        #ws.connect()
         message = protocol.createMessage('/users')
         
         success = (data) -> 'success'
@@ -384,10 +375,14 @@ describe 'webSocket', ->
 
         spyOn(ws._messagesBuffer, 'push').and.callThrough()
         promise = ws.send(message, {success, error, complete})
-        expect(ws._messagesBuffer.push).toHaveBeenCalled()#With {message, options, promise}
+        expect(ws._messagesBuffer.push).toHaveBeenCalledWith(
+          message: message
+          options: jasmine.any(Object)
+          deferred: jasmine.any(Object)
+        )
         
 
-      it 'should call custom message if strategy chosen is "custom"', (done) ->
+      it 'should call custom callback if strategy chosen is "custom"', (done) ->
         
         newOptions =
           onDisconnect: (that, messageBuffer, reallyError) ->
@@ -416,12 +411,11 @@ describe 'webSocket', ->
         error = (reason) -> 'error'
         complete = (data) -> 'complete'
 
-        spyOn(ws._messagesBuffer, 'push').and.callThrough()
         promise = ws.send(message, {success, error, complete})
         promise.catch (e) ->
           expect(e).toEqual new ReallyError('Connection to the server is not established')
 
-      it 'should return a promise when channel is not connected with any strategy', ->
+      it 'should return a promise when channel is not initialized with any strategy', ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
         message = protocol.createMessage('/users')
         promise = ws.send(message, {})
@@ -439,16 +433,17 @@ describe 'webSocket', ->
         ws.disconnect()
         done()
 
-    it 'should reconnect when time out', (done) ->
+    iit 'should reconnect when time out', (done) ->
       jasmine.clock().install()
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
       ws.connect()
+      soc1 = ws.socket 
       spyOn(ws, 'reconnect').and.callThrough()
       ws.socket.addEventListener 'open', () ->
         ws.socket.close()
       ws.socket.addEventListener 'close', () ->
         setTimeout( ->
-          expect(ws.reconnect).toHaveBeenCalled()
+          expect(ws.reconnect.calls.count()>2).toBeTruthy()
           jasmine.clock().uninstall()
           ws.disconnect()
           done()
@@ -459,8 +454,8 @@ describe 'webSocket', ->
 
     it 'should close the websocket transport', (done) ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
-      ws.connect()
       
+      ws.connect()
       ws.socket.addEventListener 'open', () ->
         ws.disconnect()
         expect(ws).toBeNull
@@ -498,7 +493,7 @@ describe 'webSocket', ->
       
       setTimeout (->
         ws.socket = null
-        expect(ws.isConnected()).toBeFalsy()
+        expect(ws.isConnecting()).toBeFalsy()
         ws.disconnect()
       ), 1000
 
