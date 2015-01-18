@@ -11,7 +11,7 @@ module.exports =
   clientVersion: VERSION
 
   commands:
-    init: 'init'
+    init: 'initialization'
     create: 'create'
     read: 'read'
     get: 'get'

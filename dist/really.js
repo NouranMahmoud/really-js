@@ -2,7 +2,7 @@
  *  Really.js v0.0.1
  *  Copyright (C) 2014-2015 Really Inc. <http://really.io>
  *
- *  Date:  Tue Jan 06 2015 17:38:48
+ *  Date:  Sun Jan 18 2015 17:08:07
  */
 !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.Really=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 // shim for using process in browser
@@ -9137,11 +9137,13 @@ module.exports = CallbacksBuffer;
 
 
 },{"./protocol":10,"./really-error":13,"lodash":3}],8:[function(require,module,exports){
-var Heartbeat, Logger, Q, logger, protocol;
+var Emitter, Heartbeat, Logger, Q, logger, protocol;
 
 protocol = require('./protocol');
 
 Q = require('q');
+
+Emitter = require('component-emitter');
 
 Logger = require('./logger');
 
@@ -9150,14 +9152,17 @@ logger = new Logger();
 Heartbeat = (function() {
   var _ping;
 
-  function Heartbeat(interval, timeout) {
+  function Heartbeat(websocket, interval, timeout) {
+    this.websocket = websocket;
     this.interval = interval != null ? interval : 5e3;
     this.timeout = timeout != null ? timeout : 5e3;
-    logger.debug("Heartbeat: initialize with interval: " + interval + " and timeout: " + timeout);
+    if (!this.websocket) {
+      throw Error('websocket should be passed');
+    }
+    logger.debug("Heartbeat: initialize with interval: " + this.interval + " and timeout: " + this.timeout);
   }
 
-  Heartbeat.prototype.start = function(websocket) {
-    this.websocket = websocket;
+  Heartbeat.prototype.start = function() {
     _ping.call(this);
     return logger.debug("Heartbeat: started interval: " + this.interval + " timeout: " + this.timeout);
   };
@@ -9170,6 +9175,7 @@ Heartbeat = (function() {
       return function(data) {
         var lag, now;
         now = Date.now();
+        console.log(data.timestamp);
         lag = (now - data.timestamp) * 0.001;
         logger.debug("Heartbeat: lag " + lag + " second(s)");
         return Q.delay(_this.interval).then(function() {
@@ -9178,11 +9184,18 @@ Heartbeat = (function() {
         });
       };
     })(this);
-    error = function() {
-      logger.debug('Heartbeat: lag exceed');
-      return this.websocket.disconnect();
-    };
+    error = (function(_this) {
+      return function(error) {
+        logger.debug('Heartbeat: lag exceed', error);
+        return _this.stop();
+      };
+    })(this);
     return pingPromise.timeout(this.interval + this.timeout).then(success, error);
+  };
+
+  Heartbeat.prototype.stop = function() {
+    this.websocket.socket.close();
+    return this.websocket.emit('heartbeat:lag');
   };
 
   return Heartbeat;
@@ -9193,7 +9206,7 @@ module.exports = Heartbeat;
 
 
 
-},{"./logger":9,"./protocol":10,"q":4}],9:[function(require,module,exports){
+},{"./logger":9,"./protocol":10,"component-emitter":2,"q":4}],9:[function(require,module,exports){
 var Logger, _,
   __slice = [].slice;
 
@@ -9281,7 +9294,7 @@ VERSION = '0';
 module.exports = {
   clientVersion: VERSION,
   commands: {
-    init: 'init',
+    init: 'initialization',
     create: 'create',
     read: 'read',
     get: 'get',
@@ -10044,8 +10057,8 @@ WebSocketTransport = (function(_super) {
         var heartbeat;
         _this.initialized = true;
         _.flush.call(_this);
-        heartbeat = new Heartbeat(_this.options.heartbeatInterval, _this.options.heartbeatTimeout);
-        heartbeat.start(_this);
+        heartbeat = new Heartbeat(_this, _this.options.heartbeatInterval, _this.options.heartbeatTimeout);
+        heartbeat.start();
         return _this.emit('initialized', data);
       };
     })(this);

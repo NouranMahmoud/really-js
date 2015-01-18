@@ -22,7 +22,7 @@ describe 'protocol', ->
       expect(message).toEqual
         kind: 'initialization'
         data:
-          cmd: 'init'
+          cmd: 'initialization'
           accessToken: 'xxwmn93p0h'
 
   describe 'createMessage', ->
