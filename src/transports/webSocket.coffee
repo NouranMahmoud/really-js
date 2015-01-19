@@ -29,21 +29,24 @@ class WebSocketTransport extends Transport
     @options = _.defaults @options, defaults
     Emitter this
 
+  _closeCallback = () ->
+    if @options.reconnect
+      @emit 'reconnecting'
+      @reconnect()
+    else
+      @emit 'closed'
+      @disconnect()
+
   _bindWebSocketEvents = (deferred) ->
-    @socket.addEventListener 'open', =>
+    @socket.addEventListener 'open', () =>
       @attempts = 0
       deferred.resolve()
+      debugger
       _sendFirstMessage.call(this)
       @emit 'opened'
-    
-    @socket.addEventListener 'close', =>
-      if @options.reconnect
-        @emit 'reconnecting'
-        @reconnect()
-      else
-        @emit 'closed'
-        @disconnect()
-    
+    console.log this
+    @socket.addEventListener 'close', _.bind(_closeCallback, this)
+
     @socket.addEventListener 'error', =>
       @emit 'error'
 
@@ -53,6 +56,7 @@ class WebSocketTransport extends Transport
       @emit 'message', data
   
   send: (message, options = {}, deferred = Q.defer()) ->
+    console.log @_messagesBuffer
     if @isConnected()
       {kind} = message
      
@@ -103,8 +107,9 @@ class WebSocketTransport extends Transport
       @initialized = true
       # send messages in buffer after the connection being initialized
       _.flush.call(this)
-      heartbeat = new Heartbeat(@options.heartbeatInterval, @options.heartbeatTimeout)
-      heartbeat.start(this)
+      debugger
+      heartbeat = new Heartbeat(this, @options.heartbeatInterval, @options.heartbeatTimeout)
+      heartbeat.start()
       @emit 'initialized', data
     
     error = (data) =>
@@ -123,6 +128,7 @@ class WebSocketTransport extends Transport
     return deferred.promise
   
   reconnect: () ->
+    console.log "I am in reconnect"
     generateTimeout = () =>
       maxInterval = (Math.pow(2, @attempts) - 1) * 1000
       if maxInterval > @options.reconnectionMaxTimeout
@@ -132,7 +138,9 @@ class WebSocketTransport extends Transport
     @attempts += 1
     #console.log "Times of reconnect"+@attempts
     #console.log "Timeout for every reconnect attemption"+generateTimeout()
+
     @connect().timeout(generateTimeout()).catch (e) ->
+      console.log "---------------------------------------"
       reconnect()
     
   _.flush = ->
@@ -151,8 +159,10 @@ class WebSocketTransport extends Transport
   _destroy =  () -> @off()
  
   disconnect: () ->
+    @socket.removeEventListener('close', _closeCallback, false);
     @socket?.close()
     _destroy.call(this)
+    debugger
     @socket = null
     @initialized = false
 

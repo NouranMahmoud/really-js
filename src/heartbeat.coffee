@@ -4,10 +4,11 @@ Logger = require './logger'
 logger = new Logger()
 
 class Heartbeat
-  constructor: (@interval = 5e3, @timeout = 5e3) ->
-    logger.debug "Heartbeat: initialize with interval: #{interval} and timeout: #{timeout}"
+  constructor: (@websocket, @interval = 5e3, @timeout = 5e3) ->
+    debugger
+    logger.debug "Heartbeat: initialize with interval: #{@interval} and timeout: #{@timeout}"
 
-  start: (@websocket) ->
+  start: () ->
     _ping.call(this)
     logger.debug "Heartbeat: started interval: #{@interval} timeout: #{@timeout}"
   
@@ -25,7 +26,7 @@ class Heartbeat
     
     error = () ->
       logger.debug 'Heartbeat: lag exceed'
-      @websocket.disconnect()
+      @websocket.socket.close()
 
     pingPromise.timeout(@interval + @timeout).then success, error
 
