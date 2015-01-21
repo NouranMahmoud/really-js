@@ -7,8 +7,6 @@ Emitter = require 'component-emitter'
 CallbacksBuffer = require '../callbacks-buffer'
 Q = require 'q'
 Heartbeat = require '../heartbeat'
-Logger = require '../logger'
-logger = new Logger()
 
 # TODO: if connection get closed stop the heartbeat
 class WebSocketTransport extends Transport
@@ -16,6 +14,7 @@ class WebSocketTransport extends Transport
     @socket = null
     @callbacksBuffer = new CallbacksBuffer()
     @_messagesBuffer = []
+    @attempts = 0
     # connection not initialized yet "we haven't send first message yet"
     @initialized =  false
     @url = "#{domain}/v#{protocol.clientVersion}/socket"
@@ -29,21 +28,30 @@ class WebSocketTransport extends Transport
     @options = _.defaults @options, defaults
     Emitter this
 
+  _closeCallback = (deferred) ->
+    console.log "socket closing #{@url}"
+    debugger
+    if @options.reconnect
+      @emit 'reconnecting'
+      setTimeout( () =>
+        console.log "++++++++++++++++++++++++++++++++++++"
+        @reconnect()
+      ,0)
+      
+    else
+      deferred.reject()
+      @emit 'closed'
+      @disconnect()  
+
   _bindWebSocketEvents = (deferred) ->
-    @socket.addEventListener 'open', =>
-      @attempts = 0
+    @socket.addEventListener 'open', () =>
       deferred.resolve()
       _sendFirstMessage.call(this)
       @emit 'opened'
-    
-    @socket.addEventListener 'close', =>
-      if @options.reconnect
-        @emit 'reconnecting'
-        @reconnect()
-      else
-        @emit 'closed'
-        @disconnect()
-    
+
+    _closeCallback = _.bind(_closeCallback, this, deferred)
+    @socket.addEventListener 'close', _closeCallback
+
     @socket.addEventListener 'error', =>
       @emit 'error'
 
@@ -103,8 +111,8 @@ class WebSocketTransport extends Transport
       @initialized = true
       # send messages in buffer after the connection being initialized
       _.flush.call(this)
-      heartbeat = new Heartbeat(@options.heartbeatInterval, @options.heartbeatTimeout)
-      heartbeat.start(this)
+      heartbeat = new Heartbeat(this, @options.heartbeatInterval, @options.heartbeatTimeout)
+      heartbeat.start()
       @emit 'initialized', data
     
     error = (data) =>
@@ -116,8 +124,12 @@ class WebSocketTransport extends Transport
 
   connect: (deferred = Q.defer()) ->
     @socket = new WebSocket(@url)
-    @socket.addEventListener 'error', _.once ->
-      console.log "error initializing websocket with URL: #{@url}"
+    wrongUrlErrorCallback = (e) ->
+      console.log "error initializing websocket with URL: #{@url}", e
+      
+
+    wrongUrlErrorCallback =  _.bind(wrongUrlErrorCallback, this)
+    @socket.addEventListener 'error', _.once wrongUrlErrorCallback
    
     _bindWebSocketEvents.call(this, deferred)
     return deferred.promise
@@ -130,8 +142,6 @@ class WebSocketTransport extends Transport
       
       Math.random() * maxInterval
     @attempts += 1
-    #console.log "Times of reconnect"+@attempts
-    #console.log "Timeout for every reconnect attemption"+generateTimeout()
     @connect().timeout(generateTimeout()).catch (e) ->
       reconnect()
     
@@ -151,9 +161,12 @@ class WebSocketTransport extends Transport
   _destroy =  () -> @off()
  
   disconnect: () ->
-    @socket?.close()
+    @options.reconnect = false
+    @socket?.removeEventListener('close', _closeCallback, false);
+    @socket.close() unless (@socket?.readyState is @socket?.CLOSED)
     _destroy.call(this)
     @socket = null
     @initialized = false
+    console.log "WebSocket with URL: #{@url} is CLOSED"
 
 module.exports = WebSocketTransport

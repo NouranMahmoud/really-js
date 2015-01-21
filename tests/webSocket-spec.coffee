@@ -8,14 +8,26 @@ ReallyError         = require '../src/really-error'
 WebSocketTransport  = require '../src/transports/webSocket'
 CallbacksBuffer     = require '../src/callbacks-buffer'
 
-options =
-  reconnectionMaxTimeout: 30e3
-  heartbeatTimeout: 3e3
-  heartbeatInterval: 5e3
-  reconnect: true
-  onDisconnect: 'buffer'
 
+options = {}
 describe 'webSocket', ->
+
+  beforeEach ->
+    options =
+      reconnectionMaxTimeout: 30e3
+      heartbeatTimeout: 3e3
+      heartbeatInterval: 5e3
+      reconnect: true
+      onDisconnect: 'buffer'
+
+  afterEach ->
+    options =
+      reconnectionMaxTimeout: 30e3
+      heartbeatTimeout: 3e3
+      heartbeatInterval: 5e3
+      reconnect: true
+      onDisconnect: 'buffer'
+
 
   describe 'initialization', ->
 
@@ -81,7 +93,7 @@ describe 'webSocket', ->
       expect(ws4.options).toEqual options4
 
 
-    xit 'should fire events per each instance', ->
+    it 'should fire events per each instance', ->
       emitter1 = false
       ws1 = new WebSocketTransport('wss://a6bcc.api.really.io', 'ibj88w5aye', options)
       ws1.on 'test', ->
@@ -106,7 +118,7 @@ describe 'webSocket', ->
       ws1.connect()
       socket1 = ws1.socket
       expect(socket1).toBeDefined()
-      ws2 = new WebSocketTransport('wss://r5crbb.api.really.io','ibj88w5aye', options)
+      ws2 = new WebSocketTransport('wss://bbbb.api.really.io','ibj88w5aye', options)
       ws2.connect()
       socket2 = ws2.socket
       expect(socket2).not.toBe(socket1)
@@ -224,25 +236,30 @@ describe 'webSocket', ->
 
     describe 'connection close', ->
       it 'should fire "reconnecting" event when reconnect options is true', (done) ->
-        ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
-        ws.connect()
-        spyOn(ws, 'emit').and.callThrough()
-        ws.socket.addEventListener 'close', () ->
-          expect(ws.emit).toHaveBeenCalledWith 'reconnecting'
-          ws.disconnect()
+        wss = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
+        wss.connect()
+        debugger
+        wss.on 'opened', () ->
+          spyOn(wss, 'emit').and.callThrough()
+          wss.socket.close()
+        
+        wss.socket.addEventListener 'close', () ->
+          expect(wss.emit).toHaveBeenCalledWith 'reconnecting'
+          wss.disconnect()
           done()
-        ws.socket.close()
 
       it 'should reconnect when reconnect option is true', (done) ->
         ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
         ws.connect()
         spyOn(ws, 'reconnect').and.callThrough()
+        ws.on 'opened', () ->
+          ws.socket.close()
+
         ws.socket.addEventListener 'close', () ->
           expect(ws.reconnect).toHaveBeenCalled()
           ws.disconnect()
           done()
-        ws.socket.close()
-
+        
       it 'should fire "close" event when reconnect options is false', (done) ->
         newOptions =
           reconnect: false
@@ -433,23 +450,22 @@ describe 'webSocket', ->
         ws.disconnect()
         done()
 
-    iit 'should reconnect when time out', (done) ->
-      jasmine.clock().install()
-      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5ake', options)
-      ws.connect()
-      soc1 = ws.socket 
+    it 'should reconnect multiple times when time out', (done) ->
+      ws = new WebSocketTransport('wss://WRONG_ID.really.com', 'ibj88w5ake', options)
+
       spyOn(ws, 'reconnect').and.callThrough()
-      ws.socket.addEventListener 'open', () ->
+      ws.connect()
+      ws.on 'initialized', () ->
         ws.socket.close()
+      
       ws.socket.addEventListener 'close', () ->
         setTimeout( ->
           expect(ws.reconnect.calls.count()>2).toBeTruthy()
           jasmine.clock().uninstall()
           ws.disconnect()
           done()
-        , 30000)
-        jasmine.clock().tick(30010)
-      
+        , 4e3)
+
   describe 'disconnect', ->
 
     it 'should close the websocket transport', (done) ->
@@ -467,11 +483,8 @@ describe 'webSocket', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
       ws.connect()
       
-      ws.socket.addEventListener 'open', () ->
-        setTimeout(->
-          expect(ws.initialized).toBeTruthy()
-        , 1000)
-        
+      ws.on 'initialized', () ->
+        expect(ws.initialized).toBeTruthy() 
         ws.disconnect()
         expect(ws.initialized).toBeFalsy()
         done()
@@ -485,34 +498,32 @@ describe 'webSocket', ->
         ws.disconnect()
         expect(ws.socket).toBeNull
         done()
+
   describe 'isConnecting', ->
 
     it 'should return false if socket is not initialized', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
-      ws.connect()
-      
-      setTimeout (->
-        ws.socket = null
-        expect(ws.isConnecting()).toBeFalsy()
-        ws.disconnect()
-      ), 1000
+      expect(ws.isConnecting()).toBeFalsy()
+      ws.disconnect()
+
 
     it 'should return true if socket is connecting',  ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
-      ws.connect()
+      ws.socket = 
+        readyState: 0
+        CONNECTING: 0
       expect(ws.isConnecting()).toBeTruthy()
-      ws.disconnect()
 
   describe 'isConnected', ->
 
     it 'should return false if socket is not initialized', ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
-      ws.connect()
-      
-      setTimeout (->
-        ws.socket = null
-        expect(ws.isConnected()).toBeFalsy()
-        ws.disconnect()
-      ), 1000
+      expect(ws.isConnected()).toBeFalsy()
+      ws.disconnect()
 
-
+    it 'should return true if socket is connected',  ->
+      ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
+      ws.socket = 
+        readyState: 1
+        OPEN: 1
+      expect(ws.isConnected()).toBeTruthy()
