@@ -457,11 +457,10 @@ describe 'webSocket', ->
       ws.connect()
       ws.on 'initialized', () ->
         ws.socket.close()
-      
+
       ws.socket.addEventListener 'close', () ->
         setTimeout( ->
-          expect(ws.reconnect.calls.count()>2).toBeTruthy()
-          jasmine.clock().uninstall()
+          expect(ws.reconnect.calls.count() > 2).toBeTruthy()
           ws.disconnect()
           done()
         , 4e3)
@@ -478,7 +477,6 @@ describe 'webSocket', ->
         ws.disconnect()
         done()
 
-
     it 'should set the initialized flag to false', (done) ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
       ws.connect()
@@ -489,7 +487,6 @@ describe 'webSocket', ->
         expect(ws.initialized).toBeFalsy()
         done()
 
-
     it 'should set the socket instance to null', (done) ->
       ws = new WebSocketTransport(CONFIG.REALLY_DOMAIN, 'ibj88w5aye', options)
       ws.connect()
@@ -498,7 +495,7 @@ describe 'webSocket', ->
         ws.disconnect()
         expect(ws.socket).toBeNull
         done()
-
+  
   describe 'isConnecting', ->
 
     it 'should return false if socket is not initialized', ->
